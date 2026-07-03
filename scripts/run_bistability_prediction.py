@@ -146,9 +146,7 @@ def main() -> None:
     print("predicted driven response of mode 2 (up/down sweep must jump):")
     for a_target, color in [(0.3, "tab:green"), (0.7, "tab:blue"), (1.2, "tab:red")]:
         force = gamma_2 * w0 * a_target
-        amp_resp, branches = driven_response_amplitude(
-            f_grid, f0=f0_fit, gamma=gamma_2, alpha=alpha_eff, force=force
-        )
+        amp_resp, branches = driven_response_amplitude(f_grid, f0=f0_fit, gamma=gamma_2, alpha=alpha_eff, force=force)
         bistable = branches == 3
         label = f"drive -> {a_target:.1f} V"
         ax_resp.plot(f_grid, amp_resp, color=color, lw=1.4, label=label)
