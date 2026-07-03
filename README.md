@@ -4,115 +4,137 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
-**Both modes of a coupled-resonator pair, identified from a single sensor.**
-A coupled pair exchanges energy, so one measured channel carries the full
-two-mode dynamics — this toolkit extracts both natural frequencies, both
-damping ratios, the coupling constant and each mode's *backbone*
-(frequency-vs-amplitude curve) from free-decay records alone.
+**One sensor. Two oscillators. The second one never touched a probe.**
 
-| Identified modes per release event | Backbones during free decay |
-| --- | --- |
-| ![Modes](figures/coupled_modes_summary.png) | (right panel of the same figure: mode 1 rigidly linear, mode 2 softening by ~2 Hz) |
+Two cantilevers share a coupling spring; an optical position sensor watches
+only one of them. This repository extracts *both* natural frequencies, both
+damping ratios, the coupling rate, each mode's frequency-vs-amplitude
+backbone — and ends with a falsifiable prediction — from nothing but
+free-decay records of that single channel.
 
-## Method — the contributions in this repo
+---
 
-1. **Single-channel latent embedding.** A large-window Hankel (delay)
-   embedding of the one measured channel makes the *unmeasured* resonator
-   observable (Takens): rank-4 SVD latents behave as ``(x1, v1, x2, v2)``, and
-   their portraits expose the energy exchange with the "hidden" partner.
-2. **Differentiation-free modal identification.** A one-step propagator
-   ``z_{k+1} = M z_k`` fitted in the latent basis (DMD/ERA style) yields the
-   continuous poles as ``log(eig(M))/dt``. This avoids two classic biases that
-   plague derivative-based fits: one-sided differences lag the state by half a
-   sample (absorbed as *artificial damping*), and even central differences
-   warp the frequency by ``sin(w dt)/dt`` (−3.4% at 13 samples/period).
-3. **Hysteresis event segmentation.** The records hold repeated manual
-   strike/release events, and a beating envelope re-crosses any single
-   threshold — a Schmitt-trigger detector (on/off thresholds) cuts whole
-   decays without splitting them at beat bellies.
-4. **Backbone tracing.** Band-passing each mode and following its Hilbert
-   ridge gives frequency as a function of the mode's own amplitude — the
-   honest description when a mode is anharmonic, since any single-pole fit is
-   then amplitude-averaged.
-5. **Bistability assessment.** A harmonic-balance driven-response solver
-   (cubic in amplitude²; root multiplicity marks the bistable region) and the
-   backbone-vs-linewidth criterion quantify how far each resonator is from the
-   bistable regime.
+## Act 1 — Strike, release, listen
 
-Everything is validated against synthetic ground truth in
-[`tests/test_coupled_id.py`](tests/test_coupled_id.py).
+A Hamamatsu 1-D PSD (µm-scale optical position sensing) stares at one
+cantilever while it is struck and released, over and over. A bench
+oscilloscope streams the position at 1–5 kHz for 20–100 s per record. That is
+the entire experiment — no force sensor, no second channel.
 
-## Results on the measured data
+![The raw record](figures/01_raw_record.png)
 
-`data/` holds 15 oscilloscope records (`scope_11..25`, 1–5 kHz, 20–100 s) of a
-coupled-cantilever experiment, measured with a Hamamatsu 1-D PSD position
-sensor (µm-scale resolution). Running
-[`scripts/run_coupled_modes.py`](scripts/run_coupled_modes.py):
+`data/` holds 15 such records. A hysteresis (Schmitt-trigger) detector cuts
+each record into individual decays without being fooled by what comes next.
+
+## Act 2 — The clue: the decay *breathes*
+
+A lone damped oscillator fades monotonically. This one doesn't — its envelope
+swells and collapses with a clean pulse of ~3 Hz. Amplitude that leaves and
+*comes back* means the energy has somewhere to hide: there is a second
+oscillator in the story, exchanging energy with the one we watch.
+
+![The breathing envelope](figures/02_breathing_envelope.png)
+
+(That breathing is also why naive event detection fails here: any single
+threshold re-triggers on the envelope bellies. The hysteresis detector is
+immune by construction.)
+
+## Act 3 — The suspects: two modes, and they are not alike
+
+The spectrum of one decay confirms the pair — and hands us a second mystery.
+The lower mode is knife-sharp, the upper one is a broad hump. Same record,
+same sensor, same processing: one resonance is textbook-linear, the other is
+hiding something.
+
+![Two modes](figures/03_two_modes.png)
+
+## Act 4 — The reveal: seeing the oscillator no sensor touched
+
+Takens' theorem says a delay embedding of one channel reconstructs the full
+state of the coupled system. Build a Hankel matrix of the measured signal,
+keep the four dominant SVD directions, and the latent pairs organize
+themselves into two phase portraits: the oscillator the sensor watches — and
+its hidden partner.
+
+![The hidden oscillator](figures/04_hidden_oscillator.png)
+
+A one-step propagator ``z_{k+1} = M z_k`` fitted on those latents (DMD/ERA
+style — no numerical differentiation, hence none of its damping/frequency
+biases) turns the portraits into numbers, per release event:
 
 | Configuration | Records | Result |
 | --- | --- | --- |
-| A: strong coupling | 11–15, 23, 24 (14 decays) | f₁ = **36.356 ± 0.032 Hz**, f₂ = 39.213 ± 0.074 Hz, splitting **2.857 ± 0.065 Hz**, ζ₁ ≈ 0.0033, ζ₂ ≈ 0.0011, k_c/m = 4262 (rad/s)² |
+| A: strong coupling | 11–15, 23, 24 (14 decays) | f₁ = **36.356 ± 0.032 Hz**, f₂ = 39.213 ± 0.074 Hz, splitting **2.857 ± 0.065 Hz**, ζ₁ ≈ 0.0033, ζ₂ ≈ 0.0011 |
 | B: weak coupling | 17, 18 | close pairs, splitting 0.28 / 0.69 Hz |
 | C: single resonator | 20–22 | f = 44.62 ± 0.05 Hz, ζ ≈ 0.0155 |
 
-The lower-mode frequency agrees with an independent analysis of the same rig
-(tagged 36.334 / 36.35 / 36.311 Hz) to within the ensemble spread.
+![Modal identification and backbones](figures/coupled_modes_summary.png)
 
-**Key finding:** the backbone traces show mode 1 rigidly linear across the
-full amplitude range while **mode 2 softens by ~2 Hz** — that shift is ~27×
-the bistability threshold (√3/2 × linewidth), so the upper mode is deep in the
-bistable-capable regime and a driven up/down sweep must show hysteresis. The
-toolkit's `driven_response_amplitude` predicts the multivalued region.
+The mass-free coupling rate: **g = (f₂−f₁)/2 = 1.430 ± 0.033 Hz**. The
+lower-mode frequency matches an independent analysis of the same rig (tagged
+36.334 / 36.35 / 36.311 Hz) within the ensemble spread.
 
-Data notes: `scope_16` is a byte-identical duplicate of `scope_15` (kept for
-completeness, excluded from statistics); records 19 and 25 show no stable
-modes and are left unclassified. Each `scope_N.txt` is the oscilloscope
-settings dump paired with `scope_N_1.csv`.
+## Act 5 — The twist, and a bet anyone can call
 
-## Mass-free coupling numbers and a testable hysteresis prediction
+Why was mode 2 a broad hump? Band-pass it, follow its Hilbert ridge through
+the decay, and the answer is a **softening backbone**: mode 2 slides from
+~40.1 Hz at small amplitude down to ~38.9 Hz at 1.2 V. Three independent
+fingerprints agree — the broad spectral hump, the measured backbone, and the
+beat rate running ~10% above the average splitting (the instantaneous
+splitting grows as the mode chirps up during the decay).
 
-No mass measurement is available, so
-[`scripts/run_bistability_prediction.py`](scripts/run_bistability_prediction.py)
-works entirely in sensor units:
+A softening resonance past a critical amplitude folds over and becomes
+**bistable**. From the measured backbone (α_eff = −6.7·10³ V⁻²s⁻²) and the
+DMD damping, the onset is only **0.22 V** — far below what the decays reach.
+So the toolkit closes with a quantitative, testable prediction:
 
-- **Coupling rate** ``g = (f2 - f1)/2 = 1.430 ± 0.033 Hz`` over 13 long decays
-  (dimensionless splitting 0.073) — the standard coupled-oscillator
-  quantifier, independent of mass.
-- **Beat cross-check:** each decay's envelope energy-exchange rate comes out
-  ~10% *above* its DMD splitting — consistent with the softening: the
-  instantaneous splitting grows as mode 2 rises in frequency during the decay,
-  and the envelope averages over the whole record. A third, independent
-  fingerprint of the anharmonicity.
-- **Effective Duffing coefficient** from the measured backbone
-  (``f(a) = f0 + c a²`` over 51k ridge samples): ``f0(a→0) = 40.12 Hz``,
-  ``c = -1.58 Hz/V²``, ``alpha_eff = -6.7·10³ V⁻²s⁻²``, with
-  ``gamma_2 = 0.57 s⁻¹`` from the DMD poles. (The quadratic is the
-  leading-order description; the measured backbone saturates near 38.9 Hz at
-  high amplitude, so the prediction is most reliable near onset.)
+![Hysteresis prediction](figures/mode2_hysteresis_prediction.png)
 
-**The prediction** (`figures/mode2_hysteresis_prediction.png`): bistability
-onset at only **0.22 V** — far below the ~1.2 V the decays start from — and a
-driven up/down sweep of mode 2 must show hysteresis with jumps at:
-
-| Drive level (peak response) | Bistable window |
+| Drive level (peak response) | Predicted bistable window |
 | --- | --- |
-| 0.3 V | 39.97 – 40.01 Hz (0.03 Hz) |
-| 0.7 V | 39.31 – 39.91 Hz (0.60 Hz) |
-| 1.2 V | 37.41 – 39.81 Hz (2.39 Hz) |
+| 0.3 V | 39.97 – 40.01 Hz |
+| 0.7 V | 39.31 – 39.91 Hz |
+| 1.2 V | **37.41 – 39.81 Hz (2.4 Hz wide)** |
 
-Anyone with access to the rig can falsify this table with a stepped-sine
-up/down sweep — that is the point.
+A stepped-sine up/down sweep of mode 2 must jump at different frequencies in
+each direction, inside these windows. **Anyone with access to the rig can
+falsify this table — that is the point.**
 
-## Quick start
+---
+
+## The toolkit (`src/coupled_id/`)
+
+| Piece | What it contributes |
+| --- | --- |
+| `events.py` | Hysteresis release-event detection (beat-proof) and anti-aliased decimation |
+| `modal.py` | Delay-embedded one-step-propagator (DMD/ERA) modal identification — differentiation-free, so neither the artificial damping of one-sided differences nor the ``sin(w dt)/dt`` warping of central differences biases the poles |
+| `spectral.py` | Sub-bin spectral peaks, Hilbert-ridge backbones, envelope exchange rate |
+| `physics.py` | Coupling rate / k_c/m from splitting, harmonic-balance driven response (cubic in a²; root multiplicity = bistability), backbone-vs-linewidth criterion |
+
+Every estimator is validated against synthetic ground truth in
+[`tests/test_coupled_id.py`](tests/test_coupled_id.py).
+
+## Reproduce everything
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-pytest -q                      # 8 synthetic validations
-python scripts/run_coupled_modes.py   # per-event modal table + figures
+pytest -q                                  # 8 synthetic validations
+python scripts/run_coupled_modes.py        # per-event modal table + summary figure
+python scripts/run_bistability_prediction.py  # coupling rate + hysteresis prediction
+python scripts/make_story_figures.py       # the Act 1-4 figures
 ```
+
+Data notes: `scope_16` is a byte-identical duplicate of `scope_15` (kept for
+completeness, excluded from statistics); records 19 and 25 show no stable
+modes and are left unclassified. Each `scope_N.txt` is the oscilloscope
+settings dump paired with `scope_N_1.csv`. The backbone's quadratic fit is
+the leading-order description (the measured backbone saturates near 38.9 Hz
+at high amplitude), so the prediction is most reliable near onset; mode-2
+nonlinear damping is not identifiable from decays alone and the prediction
+uses its linear damping.
 
 ## Acknowledgments
 
