@@ -12,6 +12,8 @@ damping ratios, the coupling rate, each mode's frequency-vs-amplitude
 backbone — and ends with a falsifiable prediction — from nothing but
 free-decay records of that single channel.
 
+![The beating decay](figures/cover_beat.gif)
+
 ---
 
 ## Act 1 — Strike, release, listen
