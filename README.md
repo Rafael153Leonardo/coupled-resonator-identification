@@ -69,6 +69,40 @@ completeness, excluded from statistics); records 19 and 25 show no stable
 modes and are left unclassified. Each `scope_N.txt` is the oscilloscope
 settings dump paired with `scope_N_1.csv`.
 
+## Mass-free coupling numbers and a testable hysteresis prediction
+
+No mass measurement is available, so
+[`scripts/run_bistability_prediction.py`](scripts/run_bistability_prediction.py)
+works entirely in sensor units:
+
+- **Coupling rate** ``g = (f2 - f1)/2 = 1.430 ± 0.033 Hz`` over 13 long decays
+  (dimensionless splitting 0.073) — the standard coupled-oscillator
+  quantifier, independent of mass.
+- **Beat cross-check:** each decay's envelope energy-exchange rate comes out
+  ~10% *above* its DMD splitting — consistent with the softening: the
+  instantaneous splitting grows as mode 2 rises in frequency during the decay,
+  and the envelope averages over the whole record. A third, independent
+  fingerprint of the anharmonicity.
+- **Effective Duffing coefficient** from the measured backbone
+  (``f(a) = f0 + c a²`` over 51k ridge samples): ``f0(a→0) = 40.12 Hz``,
+  ``c = -1.58 Hz/V²``, ``alpha_eff = -6.7·10³ V⁻²s⁻²``, with
+  ``gamma_2 = 0.57 s⁻¹`` from the DMD poles. (The quadratic is the
+  leading-order description; the measured backbone saturates near 38.9 Hz at
+  high amplitude, so the prediction is most reliable near onset.)
+
+**The prediction** (`figures/mode2_hysteresis_prediction.png`): bistability
+onset at only **0.22 V** — far below the ~1.2 V the decays start from — and a
+driven up/down sweep of mode 2 must show hysteresis with jumps at:
+
+| Drive level (peak response) | Bistable window |
+| --- | --- |
+| 0.3 V | 39.97 – 40.01 Hz (0.03 Hz) |
+| 0.7 V | 39.31 – 39.91 Hz (0.60 Hz) |
+| 1.2 V | 37.41 – 39.81 Hz (2.39 Hz) |
+
+Anyone with access to the rig can falsify this table with a stepped-sine
+up/down sweep — that is the point.
+
 ## Quick start
 
 ```bash
