@@ -104,6 +104,36 @@ falsify this table — that is the point.**
 
 ---
 
+## Reproducing the physics with learned models
+
+Can the data-driven methods of *Data-Driven Science and Engineering*
+(Brunton & Kutz) and autoencoders rediscover all of the above on their own?
+The classical numbers become the exam ([`docs/learned-models-plan.md`](docs/learned-models-plan.md);
+`pip install -e ".[learned]"`):
+
+- **E0 — discrete-time SINDy on the latents**
+  (`scripts/run_sindy_latents.py`): *partial pass.* Model selection balances
+  sparsity against rollout stability; the winner survives a 9.4 s held-out
+  rollout and its linear part shifts toward the small-amplitude limit as the
+  cubic terms are admitted — but it captures only ~0.3 Hz of the 2 Hz
+  softening, and richer models blow up in simulation. Cartesian polynomial
+  libraries struggle with strongly amplitude-dependent frequency.
+- **E1 — parametrized Koopman autoencoder** (Lusch, Kutz & Brunton 2018)
+  (`scripts/run_koopman_ae.py`): *pass with a caveat.* Two rotation pairs
+  whose (decay, frequency) are learned functions of the pair radius — the
+  construction built for continuous Koopman spectra. On records never seen in
+  training, the learned ω₂(amplitude) tracks the measured backbone with
+  **corr = 0.960 ± 0.002 (RMSE 0.40 Hz) over 8 decays**, while the learned
+  mode 1 stays flat (std 0.009 Hz). The caveat: the softening *magnitude*
+  comes out ~2× compressed — shape learned, scale still leashed to the latent
+  radius calibration.
+
+![Koopman AE exam](figures/e1_koopman_backbone.png)
+
+The two experiments make the same point from opposite sides: the physics the
+classical pipeline extracted is discoverable by learned models, and the
+architecture's inductive bias decides how much of it each one recovers.
+
 ## The toolkit (`src/coupled_id/`)
 
 | Piece | What it contributes |

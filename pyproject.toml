@@ -19,6 +19,11 @@ dev = [
   "ruff",
   "matplotlib",
 ]
+learned = [
+  "matplotlib",
+  "pysindy>=2",
+  "torch",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
