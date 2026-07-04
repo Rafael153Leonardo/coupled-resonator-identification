@@ -130,9 +130,22 @@ The classical numbers become the exam ([`docs/learned-models-plan.md`](docs/lear
 
 ![Koopman AE exam](figures/e1_koopman_backbone.png)
 
-The two experiments make the same point from opposite sides: the physics the
-classical pipeline extracted is discoverable by learned models, and the
-architecture's inductive bias decides how much of it each one recovers.
+- **E2 — SINDy autoencoder** (Champion et al. 2019, adapted to discrete time)
+  (`scripts/run_sindy_autoencoder.py`): *instructive fail.* Encoder/decoder +
+  a trainable sparse cubic map with sequential thresholding, warm-started at
+  the DMD propagator, trained with a horizon curriculum (long-horizon cubic
+  rollouts blow up otherwise). It discovers the *right structure* — the
+  dominant cubics land exactly on the amplitude-dependent-rotation terms of
+  the mode-2 pair (`y0²y1`, `y0y1²`, `y1³`) and the rollout survives the full
+  9.4 s held-out decay — but the recovered softening is ~7% of the measured
+  swing, reproducibly across configurations.
+
+**The trilogy's lesson**, stated by the exams themselves: the physics the
+classical pipeline extracted *is* discoverable by learned models, and at this
+data scale the architecture's inductive bias decides how much of it each one
+recovers — generic sparse discovery finds the structure (E0/E2), but only the
+purpose-built spectral parametrization (E1) recovers the phenomenon
+quantitatively.
 
 ## The toolkit (`src/coupled_id/`)
 

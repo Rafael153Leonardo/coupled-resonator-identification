@@ -32,8 +32,16 @@ autoencoders — using the classical pipeline's numbers as ground truth.
   (a pendulum with amplitude-dependent frequency) is exactly our mode 2.
   Success: the learned ω2(amplitude) overlays the measured backbone while
   ω1 stays flat at 36.36 Hz, on records never seen in training.
-- **E2 — SINDy autoencoder** (Champion et al. 2019): discover coordinates and
-  sparse governing equations jointly. Only if E0/E1 pass their exams.
+- **E2 — SINDy autoencoder** (Champion et al. 2019, discrete-time adaptation)
+  (`scripts/run_sindy_autoencoder.py`). Verdict: *instructive fail.* Two
+  independent training configurations converge to the same result — correct
+  sparse structure (the dominant cubics are the amplitude-dependent-rotation
+  terms of the mode-2 pair), stable 9.4 s held-out rollouts, linear part at
+  39.85/36.65 Hz — but only ~7% of the measured softening swing. Training
+  notes: 32-step cubic rollouts NaN without a horizon curriculum + gradient
+  clipping; sequential thresholding 136 → 78 terms. The comparison with E1
+  (0.96 correlation) is the ladder's lesson: at this data scale, inductive
+  bias beats generic discovery.
 
 ## Data hygiene (lessons already paid for in this project)
 
